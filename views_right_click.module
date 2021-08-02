@@ -1,0 +1,164 @@
+<?php
+/**
+ * @file
+ */
+
+use Doctrine\Common\Annotations\Annotation\Attributes;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\views\Plugin\views\ViewsHandlerInterface;
+use Drupal\views\Views;
+use Drupal\views_bulk_operations\ViewsBulkOperationsEvent;
+
+/**
+ * Implements @see hook_form_FORM_ID_alter() for views_ui_config_item_form.
+ */
+function views_right_click_form_views_ui_config_item_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  /** @var ViewsHandlerInterface $handler */
+  $handler = $form_state->get('handler');
+  if($handler->getPluginDefinition()['plugin_type'] !== 'field') {
+    return;
+  }
+
+  $options = $form_state->getStorage()['handler']->options;
+
+  $status = !empty($options['right_click']) ? $options['right_click'] : FALSE;
+  // Add right click option to views field config.
+  $form['options']['right_click'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Right click'),
+    '#default_value' => $status,
+    '#description' => t('Show in the right click menu rather than on the page.'),
+    '#weight' => -101,
+  );
+
+  $form['actions']['submit']['#submit'][] = 'views_right_click_form_views_ui_config_item_form_submit';
+}
+
+/**
+ * Form submission handler.
+ *
+ * @param array $form
+ *   An associative array containing the structure of the form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The current state of the form.
+ */
+function views_right_click_form_views_ui_config_item_form_submit(array &$form, FormStateInterface &$form_state) {
+  $view = $form_state->get('view');
+  $display_id = $form_state->get('display_id');
+  $id = $form_state->get('id');
+  $type = $form_state->get('type');
+  $executable = $view->getExecutable();
+  $handler = $executable->getHandler($display_id, $type, $id);
+
+  // Set values.
+  $state_options = $form_state->getValue('options', []);
+  if (!empty($state_options['right_click'])) {
+    $handler['right_click'] = $state_options['right_click'];
+  }
+  else {
+    $handler['right_click'] = FALSE;
+  }
+  // Removing the form values of the views link attributes module.
+  $executable->setHandler($display_id, $type, $id, $handler);
+
+  // Write to cache
+  $view->cacheSet();
+}
+
+/**
+ * Implements @see hook_views_pre_build().
+ */
+function views_right_click_views_pre_build($view) {
+  // Exclude right click fields from being displayed on the page and flag that
+  // the view has right click fields.
+  $view->right_click = FALSE;
+  if ($view->field) {
+    foreach ($view->field as &$field) {
+      if (!empty($field->options['right_click'])) {
+        $field->options['exclude'] = TRUE;
+        $view->right_click = TRUE;
+      }
+    }
+  }
+}
+
+/**
+ * Implements @see hook_views_post_render().
+ */
+function views_right_click_views_post_render($view, &$output, $cache) {
+  if (!empty($view->right_click)) {
+    // Add row menus to rendered view.
+    $context_menu_id = 'vrc-' . $view->id() . '-' . $view->current_display;
+    $menu_output = "";
+    $menu_output .= '<div class="views-right-click-menu visually-hidden" id="' . $context_menu_id . '">';
+
+    foreach ($view->result as $row_number => &$row) {
+      $items = [];
+      foreach ($view->field as $id => &$field) {
+        if (!empty($field->options['right_click'])) {
+          $items[] = $view->style_plugin->getField($row_number, $id);
+        }
+      }
+      \Drupal::moduleHandler()->alter('contextmenu', $items, $view);
+      if (!empty($items)) {
+        $menu_output .= '<menu id="contextmenu-' . $context_menu_id . '-' . ($row_number + 1) . '" type="context" style="display: none;">';
+        $menu_output .= implode("\n", $items);
+        $menu_output .= '</menu>';
+      }
+    }
+    $menu_output .= '</div>';
+    $output['#suffix'] = (!empty($output['#suffix']) ? $output['#suffix'] : "") . $menu_output;
+  }
+}
+
+/**
+ * Implements @see hook_preprocess()
+ */
+function views_right_click_preprocess(&$variables, $hook) {
+  if (!empty($variables['view'])) {
+    $view = $variables['view'];
+
+    if (!empty($view->right_click)) {
+      $variables['view']->element['#attached']['library'][] = 'views_right_click/jquery-contextmenu';
+      $variables['view']->element['#attached']['library'][] = 'views_right_click/views_right_click';
+
+      $context_menu_id = 'vrc-' . $view->id() . '-' . $view->current_display;
+
+      if (!empty($variables['rows'])) {
+        foreach (Element::children($variables['rows']) as $row_number) {
+          if (!is_numeric($row_number)) {
+            continue;
+          }
+          if (!empty($variables['rows'][$row_number]['attributes'])){
+            if ($variables['rows'][$row_number]['attributes'] instanceof Attribute) {
+              $variables['rows'][$row_number]['attributes']->setAttribute('contextmenu', 'contextmenu-' . $context_menu_id . '-' . ($row_number + 1));
+            }
+          }
+        }
+
+      }
+    }
+  }
+}
+
+/**
+ * Implements @see hook_module_implements_alter().
+ */
+function views_right_click_module_implements_alter(&$implementations, $hook)
+{
+  if ($hook == 'preprocess') {
+    $group = $implementations['views_right_click'];
+    unset($implementations['views_right_click']);
+    $implementations['views_right_click'] = $group;
+  }
+  if ($hook == 'views_post_render') {
+    if (isset($implementations['views_right_click'])) {
+      $group = $implementations['views_right_click'];
+      unset($implementations['views_right_click']);
+      $implementations['views_right_click'] = $group;
+    }
+  }
+}

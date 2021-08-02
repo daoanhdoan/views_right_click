@@ -1,0 +1,17 @@
+.context-menu-list {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: 5px 5px 2px -3px rgba(0, 0, 0, 0.5);
+  font-family: Verdana, Tahoma, "DejaVu Sans", sans-serif;
+  font-size: 9pt;
+  display: none;
+}
+
+.context-menu-item.context-menu-hover {
+  color: inherit;
+  background-color: rgb(228, 228, 228);
+}
+
+.views-right-click-menu {
+  display: none;
+}

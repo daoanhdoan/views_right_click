@@ -1,0 +1,30 @@
+jquery-contextmenu:
+  version: 2.8.0
+  license:
+    name: MIT
+    url: https://github.com/swisnl/jQuery-contextMenu/blob/master/LICENSE
+    gpl-compatible: true
+  js:
+    /libraries/jquery-contextmenu/dist/jquery.contextMenu.js: {}
+    /libraries/jquery-contextmenu/dist/jquery.ui.position.js: {}
+  css:
+    component:
+      /libraries/jquery-contextmenu/dist/jquery.contextMenu.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+jquery.selection:
+  version: 1.0.1
+  license:
+    name: MIT
+    gpl-compatible: true
+    url: "https://raw.github.com/madapaja/jquery.selection/master/src/jquery.selection.js"
+  js:
+    /libraries/jquery.selection/src/jquery.selection.js: {}
+
+views_right_click:
+  js:
+    js/views_right_click.js: {}
+  cs:
+    component:
+      css/views_right_click.css: {}

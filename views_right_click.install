@@ -1,0 +1,10 @@
+<?php
+/**
+ * @file
+ */
+/**
+ * Implement @see hook_install()
+ */
+function views_right_click_install($is_syncing) {
+  module_set_weight('views_right_click', 99999);
+}
