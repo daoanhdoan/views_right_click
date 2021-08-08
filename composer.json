@@ -2,11 +2,14 @@
     "name" : "daoanhdoan/views_right_click",
     "description": "Views right click - Create right click context menus for views rows.",
     "type" : "drupal-custom-module",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0+",
     "extra": {
         "installer-name": "views_right_click"
     },
     "require": {
-        "drupal/views": "*"
+        "drupal/views": "*",
+        "drupal/filter": "*",
+        "drupal/user": "*",
+        "drupal/system": "*"
     }
 }
